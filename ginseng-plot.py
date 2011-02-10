@@ -134,8 +134,9 @@ def main():
     print 'Input file: ' + infile
 
   xmldocs = []
-  for infile in args.infiles:
+  for index, infile in enumerate(args.infiles):
     try:
+      print 'Processing ' + infile + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
       xmldocs.append(xml.dom.minidom.parse(infile))
     except IOError:
       print 'Couldn\'t find the file: ' + infile
