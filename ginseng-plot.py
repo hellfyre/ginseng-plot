@@ -17,6 +17,58 @@ def debug_message(message):
     print '[DEBUG] ' + message
 
 #-----------------------------------------------------------------------------#
+def eval_time(interval):
+#evaluate time constraints
+  now = datetime.now()
+  plotstarttime = 0
+  plotendtime = 0
+  start = None
+  end = None
+  delta = None
+
+  if interval.endswith('hour'):
+    delta = timedelta(hours = 1)
+  elif interval.endswith('day'):
+    delta = timedelta(days = 1)
+  elif interval.endswith('week'):
+    delta = timedelta(weeks = 1)
+  elif interval.endswith('month'):
+    delta = timedelta(weeks = 4)
+  elif interval.endswith('year'):
+    delta = timedelta(days = 365)
+
+  if interval.startswith('l'):
+    end = now
+    start = end - delta
+  elif interval.startswith('c'):
+    end = normalize_date(now, interval)
+    start = normalize_date(end - delta, interval)
+  elif interval.startswith('e'):
+    end = now
+    start = normalize_date(end - delta, interval)
+
+  if interval == 'all':
+    end = now
+    start = datetime(1900, 1, 1)
+
+  print ''
+  print 'Plotting period:'
+  print 'Start ' + start.strftime('%a %Y-%m-%d %H:%M:%S')
+  print 'End ' + end.strftime('%a %Y-%m-%d %H:%M:%S')
+  print ''
+
+  plotstarttime = int(1000 * time.mktime(start.timetuple()))
+  plotendtime = int(1000 * time.mktime(end.timetuple()))
+
+  debug_message('Starttime ' + str(plotstarttime))
+  debug_message('Endtime ' + str(plotendtime))
+
+  plot_period = {}
+  plot_period['start'] = plotstarttime
+  plot_period['end'] = plotendtime
+  return plot_period
+
+#-----------------------------------------------------------------------------#
 def is_element_node(node):
   return node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE
 
@@ -55,8 +107,9 @@ def normalize_date(date, interval):
     return date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
 #-----------------------------------------------------------------------------#
-def process_xmldoc(xmldoc):
-  eventlogs = xmldoc.getElementsByTagName('WSNsEventLog')
+def process_file(infile, filelist, tempdir, interval):
+  xml = xml.dom.minidom.parse(infile)
+  eventlogs = xml.getElementsByTagName('WSNsEventLog')
   if eventlogs.length == 1:
     debug_message('WSN event log node found, processing...')
     eventlog = eventlogs[0]
@@ -73,46 +126,49 @@ def process_xmldoc(xmldoc):
   eventlogs = None
   eventlog = None
 
-# filter messages of type 102
-  measure_packets = []
+# filter messages
+  data = {}
+  last_temp = {}
   for message in messages:
     if is_measure_packet(message):
-      measure_packets.append(message)
+      parameters = packet.getElementsByTagName('parameter')
+
+      paramcount = 0
+      temp = 0
+      time = 0
+      nodeid = 0
+
+      for parameter in parameters:
+        if parameter.attributes['name'].value == 'genTime':
+          time = parameter.childNodes[0].data
+          paramcount += 1
+        if parameter.attributes['name'].value == 'temp':
+          temp = parameter.childNodes[0].data
+          paramcount += 1
+        if parameter.attributes['name'].value == 'hwid':
+          nodeid = parameter.childNodes[0].data
+          paramcount += 1
+
+      if paramcount == 3:
+        if nodeid in last_temp.keys():
+          if last_temp[nodeid]['time'] < time:
+            last_temp[nodeid]['time'] = time
+            last_temp[nodeid]['temp'] = temp
+        else:
+          debug_message('new node encountered: ' + nodeid)
+          last_temp[nodeid] = {}
+          last_temp[nodeid]['time'] = time
+          last_temp[nodeid]['temp'] = temp
+        if (time > interval['start']) and (time < interval['end']):
+          #TODO write to file, remember hwid
+        continue # with next message/packet as soon as time, temp and id are extracted
 
 # free memory
   messages = None
 
-# extract data from 'type 102'-messages
-  measurement_data = []
-  nodes_encountered = []
 
-  for packet in measure_packets:
-    parameters = packet.getElementsByTagName('parameter')
-
-    paramcount = 0
-    temp = 0
-    time = 0
-    nodeid = 0
-
-    for parameter in parameters:
-      if parameter.attributes['name'].value == 'genTime':
-        time = parameter.childNodes[0].data
-        paramcount += 1
-      if parameter.attributes['name'].value == 'temp':
-        temp = parameter.childNodes[0].data
-        paramcount += 1
-      if parameter.attributes['name'].value == 'hwid':
-        nodeid = parameter.childNodes[0].data
-        paramcount += 1
-
-    if paramcount == 3:
-      if not nodeid in nodes_encountered:
-        debug_message('new node encountered: ' + nodeid)
-        nodes_encountered.append(nodeid)
-      measurement_data.append((time, temp, nodeid))
-      continue # with next message/packet as soon as time, temp and id are extracted
-
-  return (measurement_data, nodes_encountered)
+#-----------------------------------------------------------------------------#
+def process_xml(xml, interval):
 
 #-----------------------------------------------------------------------------#
 def main():
@@ -129,15 +185,19 @@ def main():
 
   debug_message('debug: ' + str(args.debug))
 
+  tempdir = tempfile.mkdtemp(prefix='ginsengtemp')
+
   print ''
   for infile in args.infiles:
     print 'Input file: ' + infile
 
-  xmldocs = []
+  plot_period = eval_time(args.interval)
+
+  tmpfilelist = {}
   for index, infile in enumerate(args.infiles):
     try:
       print 'Processing ' + infile + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
-      xmldocs.append(xml.dom.minidom.parse(infile))
+      process_file(infile, tmpfilelist, tempdir, plot_period)
     except IOError:
       print 'Couldn\'t find the file: ' + infile
       print 'Exiting...'
@@ -169,58 +229,13 @@ def main():
   xmldocs = None
   data = None
 
-#evaluate time constraints
-  now = datetime.now()
-  plotstarttime = 0
-  plotendtime = 0
-  start = None
-  end = None
-  delta = None
-
-  if args.interval.endswith('hour'):
-    delta = timedelta(hours = 1)
-  elif args.interval.endswith('day'):
-    delta = timedelta(days = 1)
-  elif args.interval.endswith('week'):
-    delta = timedelta(weeks = 1)
-  elif args.interval.endswith('month'):
-    delta = timedelta(weeks = 4)
-  elif args.interval.endswith('year'):
-    delta = timedelta(days = 365)
-
-  if args.interval.startswith('l'):
-    end = now
-    start = end - delta
-  elif args.interval.startswith('c'):
-    end = normalize_date(now, args.interval)
-    start = normalize_date(end - delta, args.interval)
-  elif args.interval.startswith('e'):
-    end = now
-    start = normalize_date(end - delta, args.interval)
-
-  if args.interval == 'all':
-    end = now
-    start = datetime(1900, 1, 1)
-
-  print ''
-  print 'Plotting period:'
-  print 'Start ' + start.strftime('%a %Y-%m-%d %H:%M:%S')
-  print 'End ' + end.strftime('%a %Y-%m-%d %H:%M:%S')
-  print ''
-
-  plotstarttime = int(1000 * time.mktime(start.timetuple()))
-  plotendtime = int(1000 * time.mktime(end.timetuple()))
-
-  debug_message('Starttime ' + str(plotstarttime))
-  debug_message('Endtime ' + str(plotendtime))
-
-  for measurement in merged[0]:
-    if (int(measurement[0]) < plotstarttime):
-      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too old')
-      merged[0].remove(measurement)
-    if (int(measurement[0]) > plotendtime):
-      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too young')
-      merged[0].remove(measurement)
+#  for measurement in merged[0]:
+#    if (int(measurement[0]) < plotstarttime):
+#      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too old')
+#      merged[0].remove(measurement)
+#    if (int(measurement[0]) > plotendtime):
+#      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too young')
+#      merged[0].remove(measurement)
       
 #Create files and invoke gnuplot
   temp_plotcmd = tempfile.NamedTemporaryFile(mode='w', prefix='ginseng-plotcmd_', delete=False)
