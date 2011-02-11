@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding=utf8
 
 import argparse
 from datetime import datetime, timedelta
@@ -107,9 +108,11 @@ def normalize_date(date, interval):
     return date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
 #-----------------------------------------------------------------------------#
-def process_file(infile, filelist, tempdir, interval):
-  xml = xml.dom.minidom.parse(infile)
-  eventlogs = xml.getElementsByTagName('WSNsEventLog')
+def process_file(infile, filelist, tempdir, interval, last_temp):
+  debug_message('Parsing file...')
+  xmldoc = xml.dom.minidom.parse(infile)
+  debug_message('Done parsing')
+  eventlogs = xmldoc.getElementsByTagName('WSNsEventLog')
   if eventlogs.length == 1:
     debug_message('WSN event log node found, processing...')
     eventlog = eventlogs[0]
@@ -127,11 +130,9 @@ def process_file(infile, filelist, tempdir, interval):
   eventlog = None
 
 # filter messages
-  data = {}
-  last_temp = {}
   for message in messages:
     if is_measure_packet(message):
-      parameters = packet.getElementsByTagName('parameter')
+      parameters = message.getElementsByTagName('parameter')
 
       paramcount = 0
       temp = 0
@@ -159,16 +160,19 @@ def process_file(infile, filelist, tempdir, interval):
           last_temp[nodeid] = {}
           last_temp[nodeid]['time'] = time
           last_temp[nodeid]['temp'] = temp
-        if (time > interval['start']) and (time < interval['end']):
-          #TODO write to file, remember hwid
+        if (int(time) > interval['start']) and (int(time) < interval['end']):
+          if not nodeid in filelist.keys():
+            filelist[nodeid] = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotdata_' + nodeid + '_', delete=False)
+            print 'File ' + filelist[nodeid].name + ' created'
+            filelist[nodeid].write('# node ' + nodeid + '\n')
+          filelist[nodeid].write(time[:-3] + ' ' + temp + '\n')
         continue # with next message/packet as soon as time, temp and id are extracted
+
+  for index in filelist.keys():
+    filelist[index].flush()
 
 # free memory
   messages = None
-
-
-#-----------------------------------------------------------------------------#
-def process_xml(xml, interval):
 
 #-----------------------------------------------------------------------------#
 def main():
@@ -177,6 +181,7 @@ def main():
   cmdline_parser.add_argument('--output', '-o', help='Output file [png]')
   cmdline_parser.add_argument('--debug', '-d', action='store_const', const=1, help='Print debug messages') 
   cmdline_parser.add_argument('--interval', '-i', help='Only plot defined interval. Supported values are Nhour, Nday, Nweek, Nmonth, Nyear, where N can be one of l for \'last\', c for \'last complete\' or e for \'last complete plus elapsed\'', default='all')
+  cmdline_parser.add_argument('--lasttempfile', '-l', help='File to write latest temperatures to')
 
   args = cmdline_parser.parse_args()
   if args.debug:
@@ -185,19 +190,22 @@ def main():
 
   debug_message('debug: ' + str(args.debug))
 
-  tempdir = tempfile.mkdtemp(prefix='ginsengtemp')
-
+  tempdir = tempfile.mkdtemp(prefix='ginsengtemp_')
+  
   print ''
+  print 'Created dir ' + tempdir
+
   for infile in args.infiles:
     print 'Input file: ' + infile
 
   plot_period = eval_time(args.interval)
 
   tmpfilelist = {}
+  last_temp = {}
   for index, infile in enumerate(args.infiles):
     try:
       print 'Processing ' + infile + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
-      process_file(infile, tmpfilelist, tempdir, plot_period)
+      process_file(infile, tmpfilelist, tempdir, plot_period, last_temp)
     except IOError:
       print 'Couldn\'t find the file: ' + infile
       print 'Exiting...'
@@ -220,60 +228,49 @@ def main():
 
   print 'Output file: ' + args.output
 
-  data = []
-  for xmldoc in xmldocs:
-    data.append(process_xmldoc(xmldoc))
-
-  merged = merge(data)
-#free memory
-  xmldocs = None
-  data = None
-
-#  for measurement in merged[0]:
-#    if (int(measurement[0]) < plotstarttime):
-#      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too old')
-#      merged[0].remove(measurement)
-#    if (int(measurement[0]) > plotendtime):
-#      debug_message('Deleting record (' + measurement[0] + ', ' + measurement[1] + ', ' + measurement[2] + ') too young')
-#      merged[0].remove(measurement)
-      
 #Create files and invoke gnuplot
-  temp_plotcmd = tempfile.NamedTemporaryFile(mode='w', prefix='ginseng-plotcmd_', delete=False)
+  temp_plotcmd = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotcmd_', delete=False)
   print 'Created tempfile ' + temp_plotcmd.name + ' as script for gnuplot'
 
-  temp_plotcmd.write('set terminal png\n')
+  temp_plotcmd.write('set terminal png size 1280,1024\n')
   temp_plotcmd.write('set output \'' + os.path.abspath(args.output) + '\'\n')
   temp_plotcmd.write('set xdata time\n')
   temp_plotcmd.write('set xlabel \'Time\'\n')
-  temp_plotcmd.write('set ylabel \'Temperature\'\n')
-  temp_plotcmd.write('set timefmt "%s"\n')
+  temp_plotcmd.write('set ylabel \'Temperature [°C]\'\n')
+  temp_plotcmd.write('set timefmt \'%s\'\n')
   temp_plotcmd.write('set grid\n')
+  temp_plotcmd.write('plot ')
+  
+  firstentry = True
 
-  filelist = []
-  for node in merged[1]:
-    filelist.append(tempfile.NamedTemporaryFile(mode='w', prefix='ginseng-plotdata_' + node + '_', delete=False))
-    print 'Created tempfile ' + filelist[-1].name + ' for nodeid ' + node
-    filelist[-1].write('# node ' + node + '\n')
-    for measurement in merged[0]:
-      if measurement[2] == node:
-        filelist[-1].write(measurement[0][:-3] + ' ' + measurement[1] + '\n')
-        merged[0].remove(measurement)
-    filelist[-1].flush()
-    if len(filelist) == 1:
-      temp_plotcmd.write('plot ')
+  for nodeid in tmpfilelist.keys():
+    if firstentry:
+      firstentry = False
     else:
       temp_plotcmd.write(',\\\n')
-    temp_plotcmd.write('\'' + filelist[-1].name + '\' using 1:2 title \"Node ' + node + '\" smooth unique')
+    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using 1:(-39.6 + 0.01 * $2) title \"Node ' + nodeid + '\" smooth unique')
+    tmpfilelist[nodeid].close()
 
   temp_plotcmd.write('\n')
   temp_plotcmd.flush()
 
-
   os.system('gnuplot ' + temp_plotcmd.name)
 
   temp_plotcmd.close()
-  for file in filelist:
-    file.close()
+
+  if not args.lasttempfile == None:
+    try:
+      lasttemp_outfile = open(args.lasttempfile, mode='w')
+    except IOError:
+      print 'Error writing to ' + args.lasttempfile+ '. Probably a permission problem'
+      print 'Exiting...'
+      sys.exit(1)
+    for nodeid in last_temp.keys():
+      temp = -39.6 + 0.01 * int(last_temp[nodeid]['temp'])
+      lasttemp_outfile.write(nodeid + ' ' + str(temp) + '\n')
+    lasttemp_outfile.flush()
+    lasttemp_outfile.close()
+    print 'Latest temperatures written to ' + args.lasttempfile
 
 if __name__ == "__main__":
   main()
