@@ -92,27 +92,24 @@ def normalize_date(date, interval):
 
 #-----------------------------------------------------------------------------#
 def process_file(infile, filelist, tempdir, interval):
-  try:
-    open(infile, mode='r')
-  except IOError:
-    print 'Error opening file ' + infile
-    print 'Exiting...'
-    sys.exit(1)
 
-      if paramcount == 3:
-        if (int(time) > interval['start']) and (int(time) < interval['end']):
-          if not nodeid in filelist.keys():
-            filelist[nodeid] = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotdata_' + nodeid + '_', delete=False)
-            print 'File ' + filelist[nodeid].name + ' created'
-            filelist[nodeid].write('# node ' + nodeid + '\n')
-          filelist[nodeid].write(time[:-3] + ' ' + temp + '\n')
-        continue # with next message/packet as soon as time, temp and id are extracted
+  for line in infile:
+    line = line.rstrip('\n')
+    print line
+    data = line.split(' ')
+    time = data[0]
+    temp = data[1]
+    nodeid = data[2]
+
+    if (int(time) > interval['start']) and (int(time) < interval['end']):
+      if not nodeid in filelist.keys():
+        filelist[nodeid] = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotdata_' + nodeid + '_', delete=False)
+        print 'File ' + filelist[nodeid].name + ' created'
+        filelist[nodeid].write('# node ' + nodeid + '\n')
+      filelist[nodeid].write(time + ' ' + temp + '\n')
 
   for index in filelist.keys():
     filelist[index].flush()
-
-# free memory
-  messages = None
 
 #-----------------------------------------------------------------------------#
 def main():
@@ -134,15 +131,13 @@ def main():
   print ''
   print 'Created dir ' + tempdir
 
-  for infile in args.infiles:
-    print 'Input file: ' + infile
-
   plot_period = eval_time(args.interval)
 
   tmpfilelist = {}
-  for index, infile in enumerate(args.infiles):
+  for index, infilename in enumerate(args.infiles):
     try:
-      print 'Processing ' + infile + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
+      infile = open(infilename, mode='r')
+      print 'Processing ' + infile.name + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
       process_file(infile, tmpfilelist, tempdir, plot_period)
     except IOError:
       print 'Couldn\'t find the file: ' + infile
@@ -150,7 +145,7 @@ def main():
       sys.exit(1)
 
   if args.output == None:
-    args.output = args.infiles[0].replace('.xml', '') + '.png'
+    args.output = args.infiles[0].replace('.csv', '.png')
 
   if os.path.exists(args.output):
     print 'Output file ' + args.output + ' already exists. Overwriting...'
