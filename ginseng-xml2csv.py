@@ -128,7 +128,7 @@ def main():
       print 'Exiting...'
       sys.exit(1)
     for nodeid in last_temp.keys():
-      temp = -39.6 + 0.01 * int(last_temp[nodeid]['temp'])
+      temp = last_temp[nodeid]['temp']
       lasttemp_outfile.write(nodeid + ' ' + str(temp) + '\n')
     lasttemp_outfile.flush()
     lasttemp_outfile.close()
