@@ -57,7 +57,8 @@ def process_file(infilename, outfile, last_temp, timezone_seconds):
           time = str(time_int)
           paramcount += 1
         if parameter.attributes['name'].value == 'temp':
-          temp = parameter.childNodes[0].data
+          temp_float = -39.6 + 0.01 * int(parameter.childNodes[0].data)
+          temp = str(temp_float)
           paramcount += 1
         if parameter.attributes['name'].value == 'hwid':
           nodeid = parameter.childNodes[0].data
