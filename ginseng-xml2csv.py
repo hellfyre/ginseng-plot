@@ -19,7 +19,7 @@ def is_measure_packet(node):
   return node.getAttribute('messageMode') == '102'
 
 #-----------------------------------------------------------------------------#
-def process_file(infilename, outfile, last_temp):
+def process_file(infilename, outfile, last_temp, timezone_seconds):
   debug_message('Parsing file...')
   xmldoc = xml.dom.minidom.parse(infilename)
   debug_message('Done parsing')
@@ -53,7 +53,8 @@ def process_file(infilename, outfile, last_temp):
 
       for parameter in parameters:
         if parameter.attributes['name'].value == 'genTime':
-          time = parameter.childNodes[0].data
+          time_int = int(parameter.childNodes[0].data[:-3]) + timezone_seconds
+          time = str(time_int)
           paramcount += 1
         if parameter.attributes['name'].value == 'temp':
           temp = parameter.childNodes[0].data
@@ -73,21 +74,23 @@ def process_file(infilename, outfile, last_temp):
           last_temp[nodeid]['time'] = time
           last_temp[nodeid]['temp'] = temp
 
-        outfile.write(time[:-3] + ' ' + temp + ' ' + nodeid + '\n')
+        outfile.write(time + ' ' + temp + ' ' + nodeid + '\n')
         continue # with next message/packet as soon as time, temp and id are extracted
 
 #-----------------------------------------------------------------------------#
 def main():
   cmdline_parser = argparse.ArgumentParser(description='Parses DispatchSink xml and outputs csv files')
   cmdline_parser.add_argument('infiles', help='DispatchSink xml file', nargs='*')
-  cmdline_parser.add_argument('--output', '-o', help='Output dir for csv files', required=True)
   cmdline_parser.add_argument('--debug', '-d', action='store_const', const=1, help='Print debug messages') 
   cmdline_parser.add_argument('--lasttempfile', '-l', help='File to write latest temperatures to')
+  cmdline_parser.add_argument('--output', '-o', help='Output dir for csv files', required=True)
+  cmdline_parser.add_argument('--timezone', '-t', help='The local timezone in hours from GMT', default='0')
 
   args = cmdline_parser.parse_args()
   if args.debug:
     global debug
     debug = 1
+  timezone_seconds = int(args.timezone) * 3600
 
   debug_message('debug: ' + str(args.debug))
 
@@ -113,7 +116,7 @@ def main():
         print 'Exiting...'
         sys.exit(1)
       print 'processing...'
-      process_file(infilename, outfile, last_temp)
+      process_file(infilename, outfile, last_temp, timezone_seconds)
       print 'Saved to ' + outfile.name
 
   if not args.lasttempfile == None and len(last_temp) > 0:
