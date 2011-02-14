@@ -54,8 +54,8 @@ def eval_time(interval):
 
   print ''
   print 'Plotting period:'
-  print 'Start ' + start.strftime('%a %Y-%m-%d %H:%M:%S')
-  print 'End ' + end.strftime('%a %Y-%m-%d %H:%M:%S')
+  print 'Start ' + start.strftime('%a %Y-%m-%d %H:%M')
+  print 'End ' + end.strftime('%a %Y-%m-%d %H:%M')
   print ''
 
   plotstarttime = int(time.mktime(start.timetuple()))
@@ -67,8 +67,8 @@ def eval_time(interval):
   plot_period = {}
   plot_period['start'] = plotstarttime
   plot_period['end'] = plotendtime
-  plot_period['startstring'] = start.strftime('%a %Y-%m-%d %H:%M:%S')
-  plot_period['endstring'] = end.strftime('%a %Y-%m-%d %H:%M:%S')
+  plot_period['startstring'] = start.strftime('%a %Y-%m-%d %H:%M')
+  plot_period['endstring'] = end.strftime('%a %Y-%m-%d %H:%M')
   return plot_period
 
 #-----------------------------------------------------------------------------#
@@ -107,7 +107,7 @@ def process_file(infile, filelist, tempdir, interval):
       if not nodeid in filelist.keys():
         filelist[nodeid] = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotdata_' + nodeid + '_', delete=False)
         print 'File ' + filelist[nodeid].name + ' created'
-        filelist[nodeid].write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S'))
+        filelist[nodeid].write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S') + '\n')
         filelist[nodeid].write('# node ' + nodeid + '\n')
       filelist[nodeid].write(time + ' ' + temp + '\n')
 
@@ -183,7 +183,7 @@ def main():
     interval + 'All'
 
   now = datetime.now()
-  temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S'))
+  temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S') + '\n')
   temp_plotcmd.write('set terminal png size 1280,1024\n')
   temp_plotcmd.write('set output \'' + os.path.abspath(args.output) + '\'\n')
   temp_plotcmd.write('set xdata time\n')
@@ -191,7 +191,7 @@ def main():
   temp_plotcmd.write('set ylabel \'Temperature [°C]\'\n')
   temp_plotcmd.write('set timefmt \'%s\'\n')
   temp_plotcmd.write('set grid\n')
-  temp_plotcmd.write('set title \'' + interval + ' ' + plot_period['startstring'] + ' - ' + plot_period['endstring'] + '\'\n')
+  temp_plotcmd.write('set title \'' + interval + ' (From ' + plot_period['startstring'] + ' till ' + plot_period['endstring'] + ')\'\n')
   temp_plotcmd.write('plot ')
   
   firstentry = True
