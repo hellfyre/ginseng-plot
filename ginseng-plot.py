@@ -147,6 +147,11 @@ def main():
       print 'Exiting...'
       sys.exit(1)
 
+  if len(tmpfilelist) == 0:
+    print 'Nothing to plot'
+    print 'Exiting...'
+    sys.exit(1)
+
   if args.output == None:
     args.output = args.infiles[0].replace('.csv', '.png')
 
