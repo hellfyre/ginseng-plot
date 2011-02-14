@@ -95,7 +95,6 @@ def process_file(infile, filelist, tempdir, interval):
 
   for line in infile:
     line = line.rstrip('\n')
-    print line
     data = line.split(' ')
     time = data[0]
     temp = data[1]
