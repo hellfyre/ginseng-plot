@@ -99,11 +99,13 @@ def process_file(infile, filelist, tempdir, interval):
     time = data[0]
     temp = data[1]
     nodeid = data[2]
+    now = datetime.now()
 
     if (int(time) > interval['start']) and (int(time) < interval['end']):
       if not nodeid in filelist.keys():
         filelist[nodeid] = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotdata_' + nodeid + '_', delete=False)
         print 'File ' + filelist[nodeid].name + ' created'
+        filelist[nodeid].write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S'))
         filelist[nodeid].write('# node ' + nodeid + '\n')
       filelist[nodeid].write(time + ' ' + temp + '\n')
 
@@ -164,6 +166,8 @@ def main():
   temp_plotcmd = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotcmd_', delete=False)
   print 'Created tempfile ' + temp_plotcmd.name + ' as script for gnuplot'
 
+  now = datetime.now()
+  temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S'))
   temp_plotcmd.write('set terminal png size 1280,1024\n')
   temp_plotcmd.write('set output \'' + os.path.abspath(args.output) + '\'\n')
   temp_plotcmd.write('set xdata time\n')
@@ -180,7 +184,7 @@ def main():
       firstentry = False
     else:
       temp_plotcmd.write(',\\\n')
-    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using 1:(-39.6 + 0.01 * $2) title \"Node ' + nodeid + '\" smooth unique')
+    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using 1:2 title \"Node ' + nodeid + '\" smooth unique')
     tmpfilelist[nodeid].close()
 
   temp_plotcmd.write('\n')
