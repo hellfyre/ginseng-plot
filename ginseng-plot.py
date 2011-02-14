@@ -166,6 +166,20 @@ def main():
   temp_plotcmd = tempfile.NamedTemporaryFile(mode='w', dir=tempdir, prefix='ginseng-plotcmd_', delete=False)
   print 'Created tempfile ' + temp_plotcmd.name + ' as script for gnuplot'
 
+  interval = 'Last '
+  if args.interval.endswith('hour'):
+    interval = interval + 'hour'
+  elif args.interval.endswith('day'):
+    interval = interval + 'day'
+  elif args.interval.endswith('week'):
+    interval = interval + 'week'
+  elif args.interval.endswith('month'):
+    interval = interval + 'month'
+  elif args.interval.endswith('year'):
+    interval = interval + 'year'
+  else:
+    interval + 'All'
+
   now = datetime.now()
   temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S'))
   temp_plotcmd.write('set terminal png size 1280,1024\n')
@@ -175,6 +189,7 @@ def main():
   temp_plotcmd.write('set ylabel \'Temperature [°C]\'\n')
   temp_plotcmd.write('set timefmt \'%s\'\n')
   temp_plotcmd.write('set grid\n')
+  temp_plotcmd.write('set title \'' + interval + ' ' + plot_period['start'] + ' - ' + plot_period['end'] + '\'\n')
   temp_plotcmd.write('plot ')
   
   firstentry = True
