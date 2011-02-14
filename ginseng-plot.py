@@ -148,6 +148,7 @@ def main():
       sys.exit(1)
 
   if len(tmpfilelist) == 0:
+    print ''
     print 'Nothing to plot'
     print 'Exiting...'
     sys.exit(1)
