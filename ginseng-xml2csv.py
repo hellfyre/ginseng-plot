@@ -100,7 +100,7 @@ def main():
 
   last_temp = {}
   for index, infilename in enumerate(args.infiles):
-    print 'Input file (' + str(index) + ' of ' + str(len(args.infiles)) + '): ' + infilename,
+    print 'Input file (' + str(index+1) + ' of ' + str(len(args.infiles)) + '): ' + infilename,
     outfilename = os.path.basename(infilename.replace('.xml', '.csv'))
     outfilename = os.path.normpath(args.output) + os.sep + outfilename
     if os.path.exists(outfilename):

@@ -136,7 +136,7 @@ def main():
   for index, infilename in enumerate(args.infiles):
     try:
       infile = open(infilename, mode='r')
-      print 'Processing ' + infile.name + ' (' + str(index) + ' of ' + str(len(args.infiles)) + ')'
+      print 'Processing ' + infile.name + ' (' + str(index+1) + ' of ' + str(len(args.infiles)) + ')'
       process_file(infile, tmpfilelist, tempdir, plot_period)
     except IOError:
       print 'Couldn\'t find the file: ' + infile
