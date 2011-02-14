@@ -67,6 +67,8 @@ def eval_time(interval):
   plot_period = {}
   plot_period['start'] = plotstarttime
   plot_period['end'] = plotendtime
+  plot_period['startstring'] = start.strftime('%a %Y-%m-%d %H:%M:%S')
+  plot_period['endstring'] = end.strftime('%a %Y-%m-%d %H:%M:%S')
   return plot_period
 
 #-----------------------------------------------------------------------------#
@@ -189,7 +191,7 @@ def main():
   temp_plotcmd.write('set ylabel \'Temperature [°C]\'\n')
   temp_plotcmd.write('set timefmt \'%s\'\n')
   temp_plotcmd.write('set grid\n')
-  temp_plotcmd.write('set title \'' + interval + ' ' + plot_period['start'] + ' - ' + plot_period['end'] + '\'\n')
+  temp_plotcmd.write('set title \'' + interval + ' ' + plot_period['startstring'] + ' - ' + plot_period['endstring'] + '\'\n')
   temp_plotcmd.write('plot ')
   
   firstentry = True
