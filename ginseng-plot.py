@@ -109,7 +109,6 @@ def process_file(infile, filelist, tempdir, interval):
         print 'File ' + filelist[nodeid].name + ' created'
         filelist[nodeid].write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S') + '\n')
         filelist[nodeid].write('# node ' + nodeid + '\n')
-      time = str( int(time) + 3600 )
       filelist[nodeid].write(time + ' ' + temp + '\n')
 
   for index in filelist.keys():
@@ -208,7 +207,7 @@ def main():
       firstentry = False
     else:
       temp_plotcmd.write(',\\\n')
-    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using 1:2 title \"Node ' + nodeid + '\" smooth unique')
+    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using ($1 + 3600):2 title \"Node ' + nodeid + '\" smooth unique')
     tmpfilelist[nodeid].close()
 
   temp_plotcmd.write('\n')
