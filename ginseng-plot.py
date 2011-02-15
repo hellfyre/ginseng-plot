@@ -207,7 +207,7 @@ def main():
       firstentry = False
     else:
       temp_plotcmd.write(',\\\n')
-    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using ($1 + 3600):2 title \"Node ' + nodeid + '\" smooth unique')
+    temp_plotcmd.write('\'' + tmpfilelist[nodeid].name + '\' using ($1 + 90000):2 title \"Node ' + nodeid + '\" smooth unique')
     tmpfilelist[nodeid].close()
 
   temp_plotcmd.write('\n')
