@@ -186,7 +186,7 @@ def main():
   elif args.interval.endswith('year'):
     interval = interval + 'year'
   else:
-    interval + 'All'
+    interval = 'All'
 
   now = datetime.now()
   temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S') + '\n')
