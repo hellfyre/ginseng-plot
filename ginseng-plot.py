@@ -120,6 +120,8 @@ def main():
   cmdline_parser.add_argument('infiles', help='DispatchSink csv file', nargs='*')
   cmdline_parser.add_argument('--output', '-o', help='Output file [png]')
   cmdline_parser.add_argument('--debug', '-d', action='store_const', const=1, help='Print debug messages') 
+  cmdline_parser.add_argument('--lower_temperature_bound', '-lb', default='')
+  cmdline_parser.add_argument('--upper_temperature_bound', '-ub', default='')
   cmdline_parser.add_argument('--interval', '-i', help='Only plot defined interval. Supported values are Nhour, Nday, Nweek, Nmonth, Nyear, where N can be one of l for \'last\', c for \'last complete\' or e for \'last complete plus elapsed\'', default='all')
 
   args = cmdline_parser.parse_args()
@@ -193,6 +195,8 @@ def main():
   temp_plotcmd.write('set terminal png size 1280,1024\n')
   temp_plotcmd.write('set output \'' + os.path.abspath(args.output) + '\'\n')
   temp_plotcmd.write('set xdata time\n')
+  if not (args.lower_temperature_bound == '' and args.upper_temperature_bound == ''):
+    temp_plotcmd.write('set yrange[' + args.lower_temperature_bound + ':' + args.upper_temperature_bound + ']\n')
   temp_plotcmd.write('set xlabel \'Time\'\n')
   temp_plotcmd.write('set ylabel \'Temperature [°C]\'\n')
   temp_plotcmd.write('set timefmt \'%s\'\n')
