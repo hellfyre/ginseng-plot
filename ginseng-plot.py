@@ -192,7 +192,10 @@ def main():
 
   now = datetime.now()
   temp_plotcmd.write('# created ' + now.strftime('%a %Y-%m-%d %H:%M:%S') + '\n')
-  temp_plotcmd.write('set terminal png size 1280,1024\n')
+  if args.interval.endswith('hour'):
+    temp_plotcmd.write('set terminal png size 1280,1024\n')
+  else:
+    temp_plotcmd.write('set terminal png size 2560,1024\n')
   temp_plotcmd.write('set output \'' + os.path.abspath(args.output) + '\'\n')
   temp_plotcmd.write('set xdata time\n')
   if not (args.lower_temperature_bound == '' and args.upper_temperature_bound == ''):
