@@ -51,6 +51,7 @@ def main():
   outfile.write('\n')
   outfile.write('<body>\n')
   outfile.write('  <p>\n')
+  outfile.write('    <a href="latest.png"><img src="latest.png" width=320 height=240 alt="Latest"></a>\n')
   outfile.write('    <a href="hourly.png"><img src="hourly.png" width=320 height=240 alt="Hourly"></a>\n')
   outfile.write('    <a href="daily.png"><img src="daily.png" width=320 height=240 alt="Daily"></a>\n')
   outfile.write('    <a href="weekly.png"><img src="weekly.png" width=320 height=240 alt="Weekly"></a>\n')
